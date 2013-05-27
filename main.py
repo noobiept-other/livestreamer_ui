@@ -14,79 +14,68 @@ from PySide.QtCore import QProcess
 
 
 
-URL = None
-QUALITY = None
-PROCESS = None
-MESSAGES = None
+class LiveStreamer:
+
+    def __init__(self):
+
+        url = QLineEdit()
+        quality = QLineEdit()
+        messages = QTextEdit()
+
+        url.returnPressed.connect( self.start_stream )
+        quality.returnPressed.connect( self.start_stream )
+
+        mainLayout = QVBoxLayout()
+        urlLayout = QHBoxLayout()
+
+        urlLayout.addWidget( url )
+        urlLayout.addWidget( quality )
+
+        mainLayout.addLayout( urlLayout )
+        mainLayout.addWidget( messages )
+
+        window = QWidget()
+
+        window.setLayout( mainLayout )
+        window.setWindowTitle( 'Live Streamer' )
+        window.show()
+
+        self.url = url
+        self.quality = quality
+        self.messages = messages
+        self.window = window
 
 
-def go():
+    def start_stream(self):
 
-    global URL
-    global QUALITY
-    global MESSAGES
+        url = self.url.text()
+        quality = self.quality.text()
 
+        program = 'livestreamer'
 
-    app = QApplication( sys.argv )
+        process = QProcess()
 
-    URL = QLineEdit()
-    QUALITY = QLineEdit()
-    MESSAGES = QTextEdit()
+        self.process = process
 
-
-
-    URL.returnPressed.connect( start_stream )
-    QUALITY.returnPressed.connect( start_stream )
-
-    mainLayout = QVBoxLayout()
-    urlLayout = QHBoxLayout()
-
-    urlLayout.addWidget( URL )
-    urlLayout.addWidget( QUALITY )
-
-    mainLayout.addLayout( urlLayout )
-    mainLayout.addWidget( MESSAGES )
+        process.setProcessChannelMode( QProcess.MergedChannels )
+        process.start( program, [ url, quality ] )
+        process.readyReadStandardOutput.connect( self.showMessages )
 
 
-    window = QWidget()
+    def showMessages( self ):
 
-    window.setLayout( mainLayout )
-    window.setWindowTitle( 'Live Streamer' )
-    window.show()
+        outputBytes = self.process.readAll().data()
 
-    app.exec_()
+        outputUnicode = outputBytes.decode( 'utf-8' )
 
+        self.messages.append( outputUnicode )
 
-
-def start_stream():
-
-    global PROCESS
-
-    url = URL.text()
-    quality = QUALITY.text()
-
-    # print( 'starting: {} {}'.format( url, quality ) )
-
-    program = 'livestreamer'
-
-    PROCESS = QProcess()
-    PROCESS.setProcessChannelMode( QProcess.MergedChannels )
-
-    PROCESS.start( program, [ url, quality ] )
-
-    PROCESS.readyReadStandardOutput.connect( showMessages )
-
-
-
-def showMessages():
-
-    outputBytes = PROCESS.readAll().data()
-
-    outputUnicode = outputBytes.decode( 'utf-8' )
-
-    MESSAGES.append( outputUnicode )
 
 
 if __name__ == '__main__':
 
-    go()
+    app = QApplication( sys.argv )
+
+    streamer = LiveStreamer()
+
+    app.exec_()
