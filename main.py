@@ -1,6 +1,6 @@
 import sys
 
-from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout
+from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QListWidget, QListWidgetItem
 from PySide.QtCore import QProcess
 
 
@@ -9,6 +9,7 @@ from PySide.QtCore import QProcess
 
         - be able to save the links (to be easy later to open the stream again, without having to write it again)
         - maybe only have a single entry (QLineEdit) for the url and quality?..
+        - tell which qualities are available
 '''
 
 
@@ -16,14 +17,24 @@ from PySide.QtCore import QProcess
 
 class LiveStreamer:
 
-    def __init__(self):
+    def __init__( self ):
 
         url = QLineEdit()
         quality = QLineEdit()
         messages = QTextEdit()
+        links = QListWidget()
+
+
+        links.addItem( 'test' )
+
+
+        messages.setReadOnly( True )
+
+            # set the events
 
         url.returnPressed.connect( self.start_stream )
         quality.returnPressed.connect( self.start_stream )
+        links.itemClicked.connect( self.select_stream )
 
         mainLayout = QVBoxLayout()
         urlLayout = QHBoxLayout()
@@ -33,6 +44,7 @@ class LiveStreamer:
 
         mainLayout.addLayout( urlLayout )
         mainLayout.addWidget( messages )
+        mainLayout.addWidget( links )
 
         window = QWidget()
 
@@ -43,13 +55,29 @@ class LiveStreamer:
         self.url = url
         self.quality = quality
         self.messages = messages
+        self.links = links
         self.window = window
 
 
-    def start_stream(self):
+    def start_stream( self ):
 
         url = self.url.text()
         quality = self.quality.text()
+
+        arguments = []
+
+            # don't add if the argument isn't provided (if url is not given, the program gives a 'help' text)
+        if url:
+            arguments.append( url )
+
+            # if quality isn't provided, the program gives the possible quality values
+        if quality:
+
+            arguments.append( quality )
+
+        else:
+            self.messages.append( '< Need to specify the quality of the stream. >' )
+
 
         program = 'livestreamer'
 
@@ -58,17 +86,24 @@ class LiveStreamer:
         self.process = process
 
         process.setProcessChannelMode( QProcess.MergedChannels )
-        process.start( program, [ url, quality ] )
-        process.readyReadStandardOutput.connect( self.showMessages )
+        process.start( program, arguments )
+        process.readyReadStandardOutput.connect( self.show_messages )
 
 
-    def showMessages( self ):
+    def show_messages( self ):
 
         outputBytes = self.process.readAll().data()
 
         outputUnicode = outputBytes.decode( 'utf-8' )
 
         self.messages.append( outputUnicode )
+
+
+    def select_stream( self, listWidgetItem ):
+
+        print( listWidgetItem.text() )
+
+
 
 
 
@@ -79,3 +114,6 @@ if __name__ == '__main__':
     streamer = LiveStreamer()
 
     app.exec_()
+
+
+
