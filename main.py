@@ -12,7 +12,7 @@ from PySide.QtCore import QProcess
         - maybe only have a single entry (QLineEdit) for the url and quality?..
         - tell which qualities are available (and show them in a widget to be able to change easily between them)
         - be able to call the livestreamer with its other arguments (like '--version')
-        - be able to clear the messages
+        - be able to have several streams opened at same time
 '''
 
 
@@ -33,17 +33,15 @@ class LiveStreamer:
         clearMessages = QPushButton( 'Clear Messages' )
         removeSelectedLink = QPushButton( 'Remove Selected Link' )
 
-
-        links.addItem( 'test' )
-
         messages.setReadOnly( True )
 
             # set the events
 
         url.returnPressed.connect( self.parse_url )
         quality.returnPressed.connect( self.parse_url )
-        links.itemClicked.connect( self.select_stream )
+        links.itemDoubleClicked.connect( self.select_stream )
         clearMessages.clicked.connect( self.clear_messages )
+        removeSelectedLink.clicked.connect( self.remove_selected_link )
 
             # set the layouts
 
@@ -82,6 +80,8 @@ class LiveStreamer:
 
         self.stream_url = ''
         self.stream_quality = ''
+
+        self.links = set()
 
 
     def parse_url( self ):
@@ -166,11 +166,11 @@ class LiveStreamer:
 
         else:
             self.messages_ui.append( 'Opening the stream.' )
-            self.start_stream()
+            self.start_stream( self.stream_url, self.stream_quality )
 
 
 
-    def start_stream( self ):
+    def start_stream( self, url, quality='best' ):
 
         """
             Assumes self.stream_url and self.stream_quality have valid values
@@ -181,8 +181,10 @@ class LiveStreamer:
         self.process = process
 
         process.setProcessChannelMode( QProcess.MergedChannels )
-        process.start( 'livestreamer', [ self.stream_url, self.stream_quality ] )
+        process.start( 'livestreamer', [ url, quality ] )
         process.readyReadStandardOutput.connect( self.show_messages )
+
+        self.add_link( url, quality )
 
 
 
@@ -200,9 +202,37 @@ class LiveStreamer:
         self.messages_ui.setText( '' )
 
 
+    def add_link( self, url, quality ):
+
+        """
+            Adds a link to the link widget.
+
+            Only adds if its not already present.
+        """
+
+        if url not in self.links:
+
+            self.links.add( url )
+
+            self.links_ui.addItem( url )
+
+
+    def remove_selected_link( self ):
+
+        selectedItem = self.links_ui.currentItem()
+
+        if selectedItem:
+
+            self.links.remove( selectedItem.text() )
+
+            currentRow = self.links_ui.currentRow()
+            self.links_ui.takeItem( currentRow )
+
+
+
     def select_stream( self, listWidgetItem ):
 
-        print( listWidgetItem.text() )
+        self.start_stream( listWidgetItem.text() )
 
 
 
