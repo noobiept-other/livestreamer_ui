@@ -1,7 +1,7 @@
 import sys
 import json
 
-from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QListWidget, QListWidgetItem
+from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QListWidget, QListWidgetItem, QGridLayout
 from PySide.QtCore import QProcess
 
 
@@ -23,13 +23,18 @@ class LiveStreamer:
     def __init__( self ):
 
         url = QLineEdit()
+        urlLabel = QLabel( 'Url' )
         quality = QLineEdit()
+        qualityLabel = QLabel( 'Quality' )
         messages = QTextEdit()
+        messagesLabel = QLabel( 'Messages' )
         links = QListWidget()
+        linksLabel = QLabel( 'Links' )
+        clearMessages = QPushButton( 'Clear Messages' )
+        removeSelectedLink = QPushButton( 'Remove Selected Link' )
 
 
         links.addItem( 'test' )
-
 
         messages.setReadOnly( True )
 
@@ -38,16 +43,30 @@ class LiveStreamer:
         url.returnPressed.connect( self.parse_url )
         quality.returnPressed.connect( self.parse_url )
         links.itemClicked.connect( self.select_stream )
+        clearMessages.clicked.connect( self.clear_messages )
 
-        mainLayout = QVBoxLayout()
-        urlLayout = QHBoxLayout()
+            # set the layouts
 
-        urlLayout.addWidget( url )
-        urlLayout.addWidget( quality )
+        mainLayout = QGridLayout()
 
-        mainLayout.addLayout( urlLayout )
-        mainLayout.addWidget( messages )
-        mainLayout.addWidget( links )
+            # first row
+        mainLayout.addWidget( urlLabel, 0, 0 )
+        mainLayout.addWidget( qualityLabel, 0, 1 )
+        mainLayout.addWidget( linksLabel, 0, 2 )
+
+            # second row  (links widget occupies 2 rows)
+        mainLayout.addWidget( url, 1, 0 )
+        mainLayout.addWidget( quality, 1, 1 )
+        mainLayout.addWidget( links, 1, 2, 2, 1 )
+
+            # third row (messages widget occupies 2 columns)
+        mainLayout.addWidget( messages, 2, 0, 1, 2 )
+
+            # fourth row
+        mainLayout.addWidget( messagesLabel, 3, 0 )
+        mainLayout.addWidget( clearMessages, 3, 1 )
+        mainLayout.addWidget( removeSelectedLink, 3, 2 )
+
 
         window = QWidget()
 
@@ -174,6 +193,11 @@ class LiveStreamer:
         outputUnicode = outputBytes.decode( 'utf-8' )
 
         self.messages_ui.append( outputUnicode )
+
+
+    def clear_messages( self ):
+
+        self.messages_ui.setText( '' )
 
 
     def select_stream( self, listWidgetItem ):
