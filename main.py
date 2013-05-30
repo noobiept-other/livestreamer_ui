@@ -8,11 +8,11 @@ from PySide.QtCore import QProcess
 '''
     to doo:
 
-        - be able to save the links (to be easy later to open the stream again, without having to write it again)
         - maybe only have a single entry (QLineEdit) for the url and quality?..
         - tell which qualities are available (and show them in a widget to be able to change easily between them)
         - be able to call the livestreamer with its other arguments (like '--version')
         - be able to have several streams opened at same time
+        - tell which ones of the urls in the links are live at the moment
 '''
 
 
@@ -184,7 +184,7 @@ class LiveStreamer:
         process.start( 'livestreamer', [ url, quality ] )
         process.readyReadStandardOutput.connect( self.show_messages )
 
-        self.add_link( url, quality )
+        self.add_link( url )
 
 
 
@@ -202,7 +202,7 @@ class LiveStreamer:
         self.messages_ui.setText( '' )
 
 
-    def add_link( self, url, quality ):
+    def add_link( self, url ):
 
         """
             Adds a link to the link widget.
@@ -237,12 +237,53 @@ class LiveStreamer:
 
 
 
+    def save( self ):
+
+        """
+            Save any data to a file (the links/etc)
+        """
+
+            # json doesn't have sets, so convert to a list
+        linksList = list( self.links )
+
+        saveJsonText = json.dumps( linksList )
+
+        with open( 'data.txt', 'w', encoding= 'utf-8' ) as f:
+            f.write( saveJsonText )
+
+
+    def load( self ):
+
+        """
+            Load any saved data
+        """
+
+        try:
+            file = open( 'data.txt', 'r', encoding= 'utf-8' )
+
+        except FileNotFoundError:
+            return
+
+
+        linksList = json.loads( file.read() )
+
+        file.close()
+
+
+        for link in linksList:
+            self.add_link( link )
+
+
 
 if __name__ == '__main__':
 
     app = QApplication( sys.argv )
 
     streamer = LiveStreamer()
+
+    streamer.load()
+
+    app.aboutToQuit.connect( streamer.save )
 
     app.exec_()
 
