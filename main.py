@@ -5,10 +5,12 @@ from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayo
 from PySide.QtCore import QProcess
 
 
+from stream import Stream
+
+
 '''
     to doo:
 
-        - be able to have several streams opened at same time
         - tell which ones of the urls in the links are live at the moment
 '''
 
@@ -71,9 +73,6 @@ class LiveStreamer:
         self.links_ui = links
         self.window_ui = window
 
-        self.stream_url = ''
-        self.stream_quality = ''
-
         self.links = set()
 
 
@@ -87,7 +86,7 @@ class LiveStreamer:
 
         self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
-        self.start_stream( split_url )
+        Stream( split_url, self.messages_ui )
 
 
 
@@ -98,34 +97,9 @@ class LiveStreamer:
 
         self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
-        self.start_stream( split_url )
 
+        Stream( split_url, self.messages_ui )
 
-
-
-    def start_stream( self, arguments ):
-
-        """
-            arguments is a list of strings
-        """
-
-        process = QProcess()
-
-        self.process = process
-
-        process.setProcessChannelMode( QProcess.MergedChannels )
-        process.start( 'livestreamer', arguments )
-        process.readyReadStandardOutput.connect( self.show_messages )
-
-
-
-    def show_messages( self ):
-
-        outputBytes = self.process.readAll().data()
-
-        outputUnicode = outputBytes.decode( 'utf-8' )
-
-        self.messages_ui.append( outputUnicode )
 
 
     def clear_messages( self ):
