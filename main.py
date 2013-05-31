@@ -8,15 +8,9 @@ from PySide.QtCore import QProcess
 '''
     to doo:
 
-        - maybe only have a single entry (QLineEdit) for the url and quality?..
-        - tell which qualities are available (and show them in a widget to be able to change easily between them)
-        - be able to call the livestreamer with its other arguments (like '--version')
         - be able to have several streams opened at same time
         - tell which ones of the urls in the links are live at the moment
-        - be able to add any stream at any time, and not only when one is valid (which means can be only added when its live... you can just install the program and add all your favorites, regardless of whether they are live at the moment)
-        - maybe have a single entry, and save the quality as well (since it will be manually saved to the links). you may want always a certain quality (for example 1080 lags with your connection, you may not want always the best quality)
 '''
-
 
 
 
@@ -26,23 +20,22 @@ class LiveStreamer:
 
         url = QLineEdit()
         urlLabel = QLabel( 'Url' )
-        quality = QLineEdit()
-        qualityLabel = QLabel( 'Quality' )
         messages = QTextEdit()
         messagesLabel = QLabel( 'Messages' )
         links = QListWidget()
         linksLabel = QLabel( 'Links' )
         clearMessages = QPushButton( 'Clear Messages' )
+        addSelectedLink = QPushButton( 'Add Selected Link' )
         removeSelectedLink = QPushButton( 'Remove Selected Link' )
 
         messages.setReadOnly( True )
 
             # set the events
 
-        url.returnPressed.connect( self.parse_url )
-        quality.returnPressed.connect( self.parse_url )
-        links.itemDoubleClicked.connect( self.select_stream )
+        url.returnPressed.connect( self.select_stream_from_entry )
+        links.itemDoubleClicked.connect( self.select_stream_from_link )
         clearMessages.clicked.connect( self.clear_messages )
+        addSelectedLink.clicked.connect( self.add_selected_link )
         removeSelectedLink.clicked.connect( self.remove_selected_link )
 
             # set the layouts
@@ -50,14 +43,12 @@ class LiveStreamer:
         mainLayout = QGridLayout()
 
             # first row
-        mainLayout.addWidget( urlLabel, 0, 0 )
-        mainLayout.addWidget( qualityLabel, 0, 1 )
-        mainLayout.addWidget( linksLabel, 0, 2 )
+        mainLayout.addWidget( urlLabel, 0, 0, 1, 2 )    # spans 2 columns
+        mainLayout.addWidget( linksLabel, 0, 2, 1, 2 )  # spans 2 columns
 
-            # second row  (links widget occupies 2 rows)
-        mainLayout.addWidget( url, 1, 0 )
-        mainLayout.addWidget( quality, 1, 1 )
-        mainLayout.addWidget( links, 1, 2, 2, 1 )
+            # second row  (links widget occupies 2 rows and 2 columns)
+        mainLayout.addWidget( url, 1, 0, 1, 2 )         # spans 2 columns
+        mainLayout.addWidget( links, 1, 2, 2, 2 )
 
             # third row (messages widget occupies 2 columns)
         mainLayout.addWidget( messages, 2, 0, 1, 2 )
@@ -65,7 +56,8 @@ class LiveStreamer:
             # fourth row
         mainLayout.addWidget( messagesLabel, 3, 0 )
         mainLayout.addWidget( clearMessages, 3, 1 )
-        mainLayout.addWidget( removeSelectedLink, 3, 2 )
+        mainLayout.addWidget( addSelectedLink, 3, 2 )
+        mainLayout.addWidget( removeSelectedLink, 3, 3 )
 
 
         window = QWidget()
@@ -75,7 +67,6 @@ class LiveStreamer:
         window.show()
 
         self.url_ui = url
-        self.quality_ui = quality
         self.messages_ui = messages
         self.links_ui = links
         self.window_ui = window
@@ -86,114 +77,36 @@ class LiveStreamer:
         self.links = set()
 
 
-    def parse_url( self ):
+    def select_stream_from_entry( self ):
 
         """
             Gets the values from the ui elements, and executes the program in json mode, to determine if the values are valid
         """
-
         url = self.url_ui.text()
-        quality = self.quality_ui.text()
+        split_url = url.split()
 
-        self.messages_ui.append( 'Trying to open stream: {} {}'.format(url, quality) )
+        self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
-        arguments = []
-        process_function = self.determine_if_valid_url  # function to call with the live-streamer's output
-
-
-        if url:
-            arguments.append( '--json' )
-            arguments.append( url )
+        self.start_stream( split_url )
 
 
-                # if quality isn't provided, the program gives the possible quality values
-            if quality:
-                arguments.append( quality )
 
-            # if url is not given, show the help
-        else:
-            arguments.append( '--help' )
-            process_function = self.show_messages   # nothing to check, so just show the messages the program gives
+    def select_stream_from_link( self, listWidgetItem ):
 
+        url = listWidgetItem.text()
+        split_url = url.split()
 
-        self.stream_url = url
-        self.stream_quality = quality
+        self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
-            # we'll call live-streamer two times, one to get the json info, and the other to actually start the stream
-        process = QProcess()
-
-        if url:
-            self.process_json = process
-
-        else:
-            self.process = process
-
-        process.setProcessChannelMode( QProcess.MergedChannels )
-        process.start( 'livestreamer', arguments )
-        process.readyReadStandardOutput.connect( process_function )
+        self.start_stream( split_url )
 
 
-    def determine_if_valid_url( self ):
+
+
+    def start_stream( self, arguments ):
 
         """
-            Determines if the url and quality are valid values
-        """
-
-        outputBytes = self.process_json.readAll().data()
-
-        outputUnicode = outputBytes.decode( 'utf-8' )
-
-        try:
-            outputObject = json.loads( outputUnicode )
-
-        except ValueError as errorMessage:
-            print( errorMessage )
-            self.messages_ui.append( outputUnicode )
-            return
-
-
-        if outputObject.get( 'error' ):
-
-            errorMessage = outputObject[ 'error' ]
-
-            self.messages_ui.append( errorMessage )
-
-            if errorMessage.lower().find( 'invalid stream quality' ) >= 0:
-
-                self.show_qualities_available( outputObject )
-
-
-            # the quality wasn't provided
-        elif outputObject.get( 'streams' ):
-
-            self.messages_ui.append( 'Need to specify the quality of the stream.' )
-
-            self.show_qualities_available( outputObject )
-
-        else:
-            self.messages_ui.append( 'Opening the stream.' )
-            self.start_stream( self.stream_url, self.stream_quality )
-
-
-    def show_qualities_available( self, outputObject ):
-
-        """
-            From the json response, adds to the message element the available of that stream
-        """
-
-        qualityAvailable = ''
-
-        for quality in outputObject['streams']:
-            qualityAvailable += quality + ' '
-
-        self.messages_ui.append( 'Qualities Available: {}'.format( qualityAvailable ) )
-
-
-
-    def start_stream( self, url, quality='best' ):
-
-        """
-            Assumes self.stream_url and self.stream_quality have valid values
+            arguments is a list of strings
         """
 
         process = QProcess()
@@ -201,10 +114,8 @@ class LiveStreamer:
         self.process = process
 
         process.setProcessChannelMode( QProcess.MergedChannels )
-        process.start( 'livestreamer', [ url, quality ] )
+        process.start( 'livestreamer', arguments )
         process.readyReadStandardOutput.connect( self.show_messages )
-
-        self.add_link( url )
 
 
 
@@ -237,6 +148,15 @@ class LiveStreamer:
             self.links_ui.addItem( url )
 
 
+    def add_selected_link( self ):
+
+        url = self.url_ui.text()
+
+        if url:
+
+            self.add_link( url )
+
+
     def remove_selected_link( self ):
 
         selectedItem = self.links_ui.currentItem()
@@ -247,13 +167,6 @@ class LiveStreamer:
 
             currentRow = self.links_ui.currentRow()
             self.links_ui.takeItem( currentRow )
-
-
-
-    def select_stream( self, listWidgetItem ):
-
-        self.start_stream( listWidgetItem.text() )
-
 
 
 
