@@ -13,6 +13,8 @@ from PySide.QtCore import QProcess
         - be able to call the livestreamer with its other arguments (like '--version')
         - be able to have several streams opened at same time
         - tell which ones of the urls in the links are live at the moment
+        - be able to add any stream at any time, and not only when one is valid (which means can be only added when its live... you can just install the program and add all your favorites, regardless of whether they are live at the moment)
+        - maybe have a single entry, and save the quality as well (since it will be manually saved to the links). you may want always a certain quality (for example 1080 lags with your connection, you may not want always the best quality)
 '''
 
 
@@ -152,21 +154,39 @@ class LiveStreamer:
 
         if outputObject.get( 'error' ):
 
-            self.messages_ui.append( outputObject[ 'error' ] )
+            errorMessage = outputObject[ 'error' ]
+
+            self.messages_ui.append( errorMessage )
+
+            if errorMessage.lower().find( 'invalid stream quality' ) >= 0:
+
+                self.show_qualities_available( outputObject )
+
 
             # the quality wasn't provided
         elif outputObject.get( 'streams' ):
-            qualityAvailable = ''
 
-            for quality in outputObject['streams']:
-                qualityAvailable += quality + ' '
+            self.messages_ui.append( 'Need to specify the quality of the stream.' )
 
-
-            self.messages_ui.append( 'Need to specify the quality of the stream.\nQualities Available: {}'.format( qualityAvailable ) )
+            self.show_qualities_available( outputObject )
 
         else:
             self.messages_ui.append( 'Opening the stream.' )
             self.start_stream( self.stream_url, self.stream_quality )
+
+
+    def show_qualities_available( self, outputObject ):
+
+        """
+            From the json response, adds to the message element the available of that stream
+        """
+
+        qualityAvailable = ''
+
+        for quality in outputObject['streams']:
+            qualityAvailable += quality + ' '
+
+        self.messages_ui.append( 'Qualities Available: {}'.format( qualityAvailable ) )
 
 
 
