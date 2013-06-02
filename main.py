@@ -1,8 +1,8 @@
 import sys
 import json
 
-from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QListWidget, QListWidgetItem, QGridLayout
-from PySide.QtCore import QProcess
+from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide.QtCore import QProcess, Qt
 
 
 from stream import Stream
@@ -11,7 +11,8 @@ from stream import Stream
 '''
     to doo:
 
-        - tell which ones of the urls in the links are live at the moment
+        - fix problem with removing the process reference from the list (when a stream is closed)
+        - when checking if live, show the text (checking..), and then change to online/offline
 '''
 
 
@@ -24,19 +25,24 @@ class LiveStreamer:
         urlLabel = QLabel( 'Url' )
         messages = QTextEdit()
         messagesLabel = QLabel( 'Messages' )
-        links = QListWidget()
+        links = QTableWidget( 0, 2 )
         linksLabel = QLabel( 'Links' )
         clearMessages = QPushButton( 'Clear Messages' )
-        addSelectedLink = QPushButton( 'Add Selected Link' )
+        checkIfOnline = QPushButton( 'Check If Online' )
+        addSelectedLink = QPushButton( 'Add Link' )
         removeSelectedLink = QPushButton( 'Remove Selected Link' )
 
         messages.setReadOnly( True )
+
+        links.setHorizontalHeaderLabels( [ 'Url', 'Status' ] )
+        links.horizontalHeader().setResizeMode( QHeaderView.Stretch )
 
             # set the events
 
         url.returnPressed.connect( self.select_stream_from_entry )
         links.itemDoubleClicked.connect( self.select_stream_from_link )
         clearMessages.clicked.connect( self.clear_messages )
+        checkIfOnline.clicked.connect( self.check_if_online )
         addSelectedLink.clicked.connect( self.add_selected_link )
         removeSelectedLink.clicked.connect( self.remove_selected_link )
 
@@ -46,11 +52,11 @@ class LiveStreamer:
 
             # first row
         mainLayout.addWidget( urlLabel, 0, 0, 1, 2 )    # spans 2 columns
-        mainLayout.addWidget( linksLabel, 0, 2, 1, 2 )  # spans 2 columns
+        mainLayout.addWidget( linksLabel, 0, 2, 1, 3 )  # spans 3 columns
 
             # second row  (links widget occupies 2 rows and 2 columns)
         mainLayout.addWidget( url, 1, 0, 1, 2 )         # spans 2 columns
-        mainLayout.addWidget( links, 1, 2, 2, 2 )
+        mainLayout.addWidget( links, 1, 2, 2, 3 )   # spans 3 columns
 
             # third row (messages widget occupies 2 columns)
         mainLayout.addWidget( messages, 2, 0, 1, 2 )
@@ -58,8 +64,9 @@ class LiveStreamer:
             # fourth row
         mainLayout.addWidget( messagesLabel, 3, 0 )
         mainLayout.addWidget( clearMessages, 3, 1 )
-        mainLayout.addWidget( addSelectedLink, 3, 2 )
-        mainLayout.addWidget( removeSelectedLink, 3, 3 )
+        mainLayout.addWidget( checkIfOnline, 3, 2 )
+        mainLayout.addWidget( addSelectedLink, 3, 3 )
+        mainLayout.addWidget( removeSelectedLink, 3, 4 )
 
 
         window = QWidget()
@@ -86,19 +93,28 @@ class LiveStreamer:
 
         self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
-        Stream( split_url, self.messages_ui )
+        stream = Stream( split_url )
+
+        stream.start( self.messages_ui )
 
 
 
-    def select_stream_from_link( self, listWidgetItem ):
+    def select_stream_from_link( self, tableWidgetItem ):
 
-        url = listWidgetItem.text()
+        row = tableWidgetItem.row()
+
+        urlItem = self.links_ui.item( row, 0 )  # the url is in the first column
+
+        url = urlItem.text()
+
         split_url = url.split()
 
         self.messages_ui.append( 'Trying to open stream: {}'.format( url ) )
 
 
-        Stream( split_url, self.messages_ui )
+        stream = Stream( split_url )
+
+        stream.start( self.messages_ui )
 
 
 
@@ -119,7 +135,24 @@ class LiveStreamer:
 
             self.links.add( url )
 
-            self.links_ui.addItem( url )
+
+            rowCounts = self.links_ui.rowCount()
+            nextRow = rowCounts + 1
+            nextPosition = rowCounts    # row count is the length, but position is zer0-based
+
+            self.links_ui.setRowCount( nextRow )
+
+            urlEntry = QTableWidgetItem( url )
+            statusEntry = QTableWidgetItem( '' )
+
+            statusEntry.setTextAlignment( Qt.AlignCenter )
+
+            urlEntry.setFlags( urlEntry.flags() ^ Qt.ItemIsEditable ) # not editable
+            statusEntry.setFlags( statusEntry.flags() ^ Qt.ItemIsEditable ) # not editable
+
+            self.links_ui.setItem( nextPosition, 0, urlEntry )
+            self.links_ui.setItem( nextPosition, 1, statusEntry )
+
 
 
     def add_selected_link( self ):
@@ -140,7 +173,30 @@ class LiveStreamer:
             self.links.remove( selectedItem.text() )
 
             currentRow = self.links_ui.currentRow()
-            self.links_ui.takeItem( currentRow )
+            self.links_ui.removeRow( currentRow )
+
+
+
+    def check_if_online( self ):
+
+        """
+            Check if any of the streams saved is online
+        """
+
+        for row in range( self.links_ui.rowCount() ):
+
+            urlItem = self.links_ui.item( row, 0 )
+            statusItem = self.links_ui.item( row, 1 )
+
+            url = urlItem.text()
+
+            splitUrl = url.split()
+
+            stream = Stream( splitUrl )
+
+            stream.is_online( statusItem )
+
+
 
 
 
@@ -179,6 +235,9 @@ class LiveStreamer:
 
         for link in linksList:
             self.add_link( link )
+
+
+        self.check_if_online()
 
 
 
