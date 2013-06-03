@@ -17,7 +17,7 @@ class Stream:
 
         global ALL_STREAMS
 
-        print(len(ALL_STREAMS))
+        print(len(ALL_STREAMS)) #HERE
 
         process = QProcess()
 
@@ -46,6 +46,8 @@ class Stream:
         process.start( 'livestreamer', arguments )
         process.readyReadStandardOutput.connect( self.is_online_callback )
         process.finished.connect( self.clear )
+
+        tableWidgetItem.setText( 'Checking..' )
 
         ALL_STREAMS.append( self )
 

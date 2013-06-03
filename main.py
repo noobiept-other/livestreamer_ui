@@ -1,8 +1,8 @@
 import sys
 import json
 
-from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QHBoxLayout, QWidget, QTextEdit, QVBoxLayout, QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView
-from PySide.QtCore import QProcess, Qt
+from PySide.QtGui import QApplication, QLabel, QPushButton, QLineEdit, QWidget, QTextEdit, QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide.QtCore import Qt
 
 
 from stream import Stream
@@ -12,7 +12,6 @@ from stream import Stream
     to doo:
 
         - fix problem with removing the process reference from the list (when a stream is closed)
-        - when checking if live, show the text (checking..), and then change to online/offline
 '''
 
 
