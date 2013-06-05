@@ -8,14 +8,6 @@ from PySide.QtCore import Qt
 from stream import Stream
 
 
-'''
-    to doo:
-
-        - fix problem with removing the process reference from the list (when a stream is closed)
-'''
-
-
-
 class LiveStreamer:
 
     def __init__( self ):

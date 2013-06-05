@@ -3,10 +3,9 @@ import json
 from PySide.QtCore import QProcess
 
 
-ALL_STREAMS = []
-
-
 class Stream:
+
+    ALL_STREAMS = []
 
     def __init__( self, arguments ):
 
@@ -15,9 +14,7 @@ class Stream:
 
     def start( self, messageElement ):
 
-        global ALL_STREAMS
-
-        print(len(ALL_STREAMS)) #HERE
+        Stream.clear_streams()
 
         process = QProcess()
 
@@ -27,17 +24,18 @@ class Stream:
         process.setProcessChannelMode( QProcess.MergedChannels )
         process.start( 'livestreamer', self.arguments )
         process.readyReadStandardOutput.connect( self.show_messages )
-        process.finished.connect( self.clear )
 
-        ALL_STREAMS.append( self )
+        Stream.ALL_STREAMS.append( self )
 
 
 
     def is_online( self, tableWidgetItem ):
 
+        Stream.clear_streams()
+
         process = QProcess()
 
-        self.process_is_online = process
+        self.process = process
         self.table_widget_item = tableWidgetItem
 
         arguments = [ '--json' ] + self.arguments
@@ -45,16 +43,15 @@ class Stream:
         process.setProcessChannelMode( QProcess.MergedChannels )
         process.start( 'livestreamer', arguments )
         process.readyReadStandardOutput.connect( self.is_online_callback )
-        process.finished.connect( self.clear )
 
         tableWidgetItem.setText( 'Checking..' )
 
-        ALL_STREAMS.append( self )
+        Stream.ALL_STREAMS.append( self )
 
 
     def is_online_callback( self ):
 
-        outputBytes = self.process_is_online.readAll().data()
+        outputBytes = self.process.readAll().data()
 
         outputUnicode = outputBytes.decode( 'utf-8' )
 
@@ -78,15 +75,6 @@ class Stream:
         itemWidget.setText( onlineStatus )
 
 
-
-    def clear( self ):
-
-        global ALL_STREAMS
-
-
-        #ALL_STREAMS.remove( self )     #HERE its crashing the program
-
-
     def show_messages( self ):
 
         outputBytes = self.process.readAll().data()
@@ -94,3 +82,23 @@ class Stream:
         outputUnicode = outputBytes.decode( 'utf-8' )
 
         self.messageElement.append( outputUnicode )
+
+
+
+    @staticmethod
+    def clear_streams():
+
+        """
+            Remove the streams that have ended (process is not running anymore) from the list that contains all the stream objects
+        """
+
+        streams = []
+
+        for stream in Stream.ALL_STREAMS:
+
+            if stream.process.state() != QProcess.NotRunning:
+
+                streams.append( stream )
+
+
+        Stream.ALL_STREAMS = streams
