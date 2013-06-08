@@ -23,5 +23,6 @@ Or click in the 'add link' button to save that link.
 
 Dependencies:
 
+* livestreamer
 * python3
 * pyside (Qt)
