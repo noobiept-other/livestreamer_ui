@@ -8,6 +8,16 @@ from PySide.QtCore import Qt
 from stream import Stream
 
 
+
+    # FileNotFoundError is python3.3+ only
+try:
+    TryFileNotFound = FileNotFoundError
+
+except NameError:
+    TryFileNotFound = IOError
+
+
+
 class LiveStreamer:
 
     def __init__( self ):
@@ -129,7 +139,7 @@ class LiveStreamer:
 
             rowCounts = self.links_ui.rowCount()
             nextRow = rowCounts + 1
-            nextPosition = rowCounts    # row count is the length, but position is zer0-based
+            nextPosition = rowCounts    # row count is the length, but position is zero-based
 
             self.links_ui.setRowCount( nextRow )
 
@@ -138,11 +148,17 @@ class LiveStreamer:
 
             statusEntry.setTextAlignment( Qt.AlignCenter )
 
-            urlEntry.setFlags( urlEntry.flags() ^ Qt.ItemIsEditable ) # not editable
-            statusEntry.setFlags( statusEntry.flags() ^ Qt.ItemIsEditable ) # not editable
+            urlEntry.setFlags( urlEntry.flags() & ~Qt.ItemIsEditable ) # not editable
+            statusEntry.setFlags( statusEntry.flags() & ~Qt.ItemIsEditable ) # not editable
 
             self.links_ui.setItem( nextPosition, 0, urlEntry )
             self.links_ui.setItem( nextPosition, 1, statusEntry )
+
+
+                # check if online
+            stream = Stream( url.split() )
+
+            stream.is_online( statusEntry )
 
 
 
@@ -215,7 +231,7 @@ class LiveStreamer:
         try:
             file = open( 'data.txt', 'r', encoding= 'utf-8' )
 
-        except FileNotFoundError:
+        except TryFileNotFound:
             return
 
 

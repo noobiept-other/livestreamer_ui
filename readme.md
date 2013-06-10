@@ -21,8 +21,20 @@ and press enter.
 Or click in the 'add link' button to save that link.
 
 
-Dependencies:
+Dependencies
+============
 
-* livestreamer
-* python3
-* pyside (Qt)
+
+* [vlc](http://www.videolan.org/vlc/ "vlc")
+* [livestreamer](https://github.com/chrippa/livestreamer "livestreamer")
+* [python3](http://www.python.org/ "python3")
+* [pyside (Qt)](http://qt-project.org/wiki/PySide "pyside (Qt)")
+
+
+To run the files, just create a link calling the script.
+
+
+For example on windows, right-click -> new -> shortcut, and write:
+
+    C:\Python33\pythonw.exe C:\path_to\livestreamer_ui\main.py
+
