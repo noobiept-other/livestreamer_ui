@@ -37,6 +37,7 @@ class LiveStreamer:
 
         links.setHorizontalHeaderLabels( [ 'Url', 'Status' ] )
         links.horizontalHeader().setResizeMode( QHeaderView.Stretch )
+        links.horizontalHeader().setResizeMode( 1, QHeaderView.Fixed )
 
             # set the events
 
@@ -74,6 +75,7 @@ class LiveStreamer:
 
         window.setLayout( mainLayout )
         window.setWindowTitle( 'Live Streamer' )
+        window.resize( 700, 350 )
         window.show()
 
         self.url_ui = url
